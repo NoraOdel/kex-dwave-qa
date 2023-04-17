@@ -13,8 +13,7 @@ def default_value():
 # ....
 def build_QUBO_matrix(n_nodes, nodes, edges):
     """
-    Translates the graph coloring problem to a QUBO (Quadratic unconstrained binary optimization) \\
-    problem and returns the corresponding QUBO matrix 
+    Translates the graph coloring problem to a QUBO and returns the corresponding QUBO matrix 
     """
 
     # QUBO
