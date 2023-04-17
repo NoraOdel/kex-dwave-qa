@@ -2,9 +2,10 @@
 from dwave.system import DWaveSampler, EmbeddingComposite # = embedding is done by Dwave
 from dimod import BinaryQuadraticModel
 from QUBO_helper import build_QUBO_matrix
+import numpy as np
 
 # Constants
-NUM_READS = 5                   # Hyperparameter TODO
+NUM_READS = 100                 # Hyperparameter TODO
 CHAIN_STRENGTH = 8              # Hyperparameter TODO
 ANNEALING_TIME = 1              # Hyperparameter TODO
 
@@ -32,11 +33,50 @@ def solveGCP(nodes: [int], edges: [[int]]):
     # Post processing, calculate number of colors from resulting graph coloring
     print(sampleset)
     best_solution = sampleset.first.sample
-    n_colors = n
-    for value in best_solution.values():
-        if (value == 1):
-            n_colors -= 1
+    print(f'Best Solution according to QA: {best_solution}')
 
+
+    grouped = np.zeros(n)
+    newGroupId = 1
+
+    chromatic = n
+    for key in best_solution.keys():
+        (x, y) = key
+        if (best_solution[key] == 1):
+            if grouped[y] == 0 and grouped[x] != 0:
+                # x is grouped -> Group y with x
+                chromatic -= 1
+                grouped[y] = grouped[x]
+
+            elif grouped[x] == 0 and grouped[y] != 0:
+                # Group x
+                chromatic -= 1
+                grouped[x] = grouped[y]
+
+            elif grouped[x] == 0 and grouped[y] == 0:
+                # Group x and y in newGroup
+                chromatic -= 1
+                grouped[x] = newGroupId
+                grouped[y] = newGroupId
+                newGroupId += 1
+
+            else: # grouped[x] != 0 and grouped[y] != 0
+                # x and y are grouped, Should be grouped together.
+                # If not grouped together -> Merge groups
+                if grouped[y] != grouped[x]: 
+                    # Remove one group
+                    chromatic -= 1
+
+                    # Merge Groups
+                    for index in range(len(grouped)):
+                        if grouped[index] == grouped[y]:
+                            grouped[index] = grouped[x]
+                        elif grouped[index] > grouped[y]:
+                            grouped[index] -= 1
+                    grouped[y] = grouped[x]
+                    newGroupId -= 1
+                # if grouped together -> do nothing
+                            
     # Print approximated chromatic number
-    return n_colors
+    return chromatic
 

@@ -1,8 +1,8 @@
 from collections import defaultdict
 
 
-BIG_PENALTY = 5                 # Hyperparameter TODO
-SEMI_BIG_PENALTY = 2            # Hyperparameter TODO
+BIG_PENALTY = 10
+SEMI_BIG_PENALTY = 1            # Hyperparameter TODO
 ZERO_PENALTY = 0                # Hyperparameter TODO
 
 # Initialize our matrix Q, for Q in build_QUBO_matrix()
