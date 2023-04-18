@@ -33,12 +33,10 @@ def testAll(environment):
         print('') # Something else?
 
 def testOne(environment, filepath):
-    path = f'./tests/{nNodes}-{nEdges}/1.txt'
-    g = fileToGraph(path)
+    g = fileToGraph(filepath)
 
     if (environment == QA):
         solution_status = solveWithQA(g)
-        wrong_solutions += solution_status
             
     elif (environment == GATE_BASED):
         solveWithGateBased(g)
@@ -64,10 +62,11 @@ def solveWithGateBased(graph: Graph):
 
 """ MAIN """
 def main():
-    # testAll(QA)
+    print("DONE: Changed annealing time to 1 \n\n\n")
+    testAll(QA)
 
     # nNodes, nEdges = 5, 3
-    # testOne(QA, f'./tests/{nNodes}-{nEdges}/1.txt')
+    # testOne(QA, f'./tests/6-5/1.txt')
     return 0
 
 

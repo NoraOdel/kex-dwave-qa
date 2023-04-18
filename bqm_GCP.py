@@ -1,19 +1,20 @@
 # TODO: Which solver should we run this on?
 from dwave.system import DWaveSampler, EmbeddingComposite # = embedding is done by Dwave
+import dwave.inspector
 from dimod import BinaryQuadraticModel
 from QUBO_helper import build_QUBO_matrix
 import numpy as np
 
 # Constants
-NUM_READS = 100                 # Hyperparameter TODO
-CHAIN_STRENGTH = 8              # Hyperparameter TODO
-ANNEALING_TIME = 1              # Hyperparameter TODO
+NUM_READS = 100                 # Hyperparameter TODO: Increase? 1000?
+CHAIN_STRENGTH = 20              # Hyperparameter TODO: to be greater than biases
 
 def solveGCP(nodes: [int], edges: [[int]]):
     """
     Return the approxminated chromatic number of a graph \\
     using Quantum Annealing with a binary quadratic model
     """
+    print(f'Chain Strength: {CHAIN_STRENGTH}')
     n = len(nodes)
 
     # CREATE QUBO Matrix
@@ -26,14 +27,22 @@ def solveGCP(nodes: [int], edges: [[int]]):
     # returns sampled (approximated) solutions.
     sampleset = sampler.sample_qubo(Q,
                                     num_reads=NUM_READS,
-                                    annealing_time=ANNEALING_TIME,
                                     chain_strength=CHAIN_STRENGTH,
                                     label='KEX - Graph Coloring - BQM')
 
+
     # Post processing, calculate number of colors from resulting graph coloring
     print(sampleset)
+
+    if len(nodes) == 8:
+        dwave.inspector.show(sampleset)
+
     best_solution = sampleset.first.sample
     print(f'Best Solution according to QA: {best_solution}')
+    try: 
+        print(f'Chain Breaks: {best_solution.chain_breaks}')
+    except:
+        print("Not right command")
 
 
     grouped = np.zeros(n)

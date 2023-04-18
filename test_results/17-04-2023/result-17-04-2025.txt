@@ -1734,3 +1734,17 @@ Best Solution according to QA: {(0, 1): 1, (0, 2): 1, (0, 3): 1, (0, 4): 0, (0, 
 
 
 Number of wrong answers: 2
+
+
+
+NOTES: USED COEFFICIENTS
+
+BIG_PENALTY = 10
+SEMI_BIG_PENALTY = 1            # Hyperparameter TODO
+ZERO_PENALTY = 0                # Hyperparameter TODO
+
+NUM_READS = 100                 # Hyperparameter TODO
+CHAIN_STRENGTH = 8              # Hyperparameter TODO
+ANNEALING_TIME = 1              # Hyperparameter TODO
+
+CONCLUSION: warning -> some qudratic coefficients are less stan chain strenght but best result so far.

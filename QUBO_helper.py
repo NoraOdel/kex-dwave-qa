@@ -1,8 +1,8 @@
 from collections import defaultdict
 
 
-BIG_PENALTY = 10
-SEMI_BIG_PENALTY = 1            # Hyperparameter TODO
+BIG_PENALTY = 15
+SMALL_PROMOTION = 1           # Hyperparameter TODO
 ZERO_PENALTY = 0                # Hyperparameter TODO
 
 # Initialize our matrix Q, for Q in build_QUBO_matrix()
@@ -15,6 +15,8 @@ def build_QUBO_matrix(n_nodes, nodes, edges):
     """
     Translates the graph coloring problem to a QUBO and returns the corresponding QUBO matrix 
     """
+    print(f'Big Penalty: {BIG_PENALTY}')
+    print(f'Small promotion: {SMALL_PROMOTION}')
 
     # QUBO
     Q = defaultdict(default_value)
@@ -33,7 +35,7 @@ def build_QUBO_matrix(n_nodes, nodes, edges):
             # promotes x_ij = 0
                                                 
         else:
-            Q[(pair1,pair1)] = -SEMI_BIG_PENALTY            # semi-big penalty/promotion: should not outshadow promotion of  pair1 = 0 in quadratic coefficients
+            Q[(pair1,pair1)] = -SMALL_PROMOTION            # semi-big penalty/promotion: should not outshadow promotion of  pair1 = 0 in quadratic coefficients
                                                             # -> happens when two pairs, in respect to eachother, can not be in the same grouping    
             # promotes x_ij = 1
 
@@ -62,7 +64,7 @@ def build_QUBO_matrix(n_nodes, nodes, edges):
                 # reason: we cannot promote case1 and case 2 if we do not check if the pairs should be able to 
                 # have an edge between themselves. this is done with linear coefficients
             else:
-                Q[(pair1,pair2)] = -SEMI_BIG_PENALTY                # Semi-big penalty/promotion: should not outshadow promotion of 0 in linear coefficients
+                Q[(pair1,pair2)] = -SMALL_PROMOTION                # Semi-big penalty/promotion: should not outshadow promotion of 0 in linear coefficients
                                                                     # -> promotion happens when there is an edge between nodes in pair1/pair2
                 # Promotes x_ij = 1 and p_hk = 1, everything else is equally good.
                 # reason: we cannot promote case1 and case2 if we do not check if the pairs should be able to 
