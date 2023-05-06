@@ -1,5 +1,5 @@
 from Graph import fileToGraph, Graph, getPossibleGraphs
-from bqm_GCP import solveGCP
+from bqm_GCP import solveGCP, solveGCPcqm
 
 
 QA = 'qa'
@@ -16,21 +16,24 @@ def testAll(environment):
 def testOne(filepath, nNodes, density):
     g = fileToGraph(filepath)
     collectedResults = solveWithQA(g)
-    collectedResults['NumberOfNodes'] = nNodes
-    collectedResults['GraphDensity'] = density
-    print(collectedResults)
-    return collectedResults
+    #collectedResults['NumberOfNodes'] = nNodes
+    #collectedResults['GraphDensity'] = density
+    #print(collectedResults)
+    #return collectedResults
+    return 1
             
 
 def solveWithQA(g):
-    collectedResults = solveGCP(g.vertecies, g.adjecency_matrix(), g.chromatic_number)
-    return collectedResults
+    solveGCPcqm(g.vertecies, g.adjecency_matrix(), g.chromatic_number)
+    # solveGCP(g.vertecies, g.adjecency_matrix, g.chromatic_number)
+
+    return 1
 
 
 """ MAIN """
 def main():
     #testAll(QA)
-    testOne(f'./tests/8-1/1.txt', 8, 0.1)
+    testOne(f'./tests/5-3/1.txt', 15, 0.7)
     return 0
 
 

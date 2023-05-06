@@ -8,6 +8,10 @@ import time
 import datetime as dt
 
 
+# CQM
+from dimod import DiscreteQuadraticModel, Binary
+from dwave.system import LeapHybridDQMSampler
+
 # Constants
 NUM_READS = 1000                 # Hyperparameter TODO: Increase? 1000?
 CHAIN_STRENGTH = 400              # Hyperparameter TODO: to be greater than biases
@@ -58,6 +62,83 @@ def solveGCP(nodes: [int], edges: [[int]], realChromaticNumber: int):
     # Print approximated chromatic number
     return collected
 
+
+def solveGCPcqm(nodes: [int], edges: [[int]], realChromaticNumber: int):
+    tic = time.perf_counter()
+    num_colors = len(nodes)
+    colors = range(num_colors)
+
+    dqm = DiscreteQuadraticModel()
+
+    for node in nodes:
+        dqm.add_variable(num_colors, label=node)
+        dqm.set_linear(node, colors)
+
+
+    # Build dqm variables
+    for i1 in range(len(nodes)):
+        node1 = nodes[i1]
+        for i2 in range(i1+1,len(nodes)):
+            node2 = nodes[i2]
+            if edges[node1][node2] == 1: # Penalty
+                dqm.set_quadratic(node1, node2, {(color, color): 100 for color in colors})
+    toc = time.perf_counter()
+    pre_processing_time = toc - tic
+
+    tic = time.perf_counter()
+    results = LeapHybridDQMSampler().sample_dqm(dqm, label='DQM - Graph Coloring')
+    toc = time.perf_counter()
+    QA_time = toc - tic
+
+    best_solution = results.first.sample
+    # Get chromatic number - Post processing
+    tic = time.perf_counter()
+    usedColors = dict.fromkeys(colors, 0)
+    for color in best_solution.values():
+        usedColors[color] = 1
+    
+    chromatic = sum(usedColors.values())
+    toc = time.perf_counter()
+    post_processing_time = toc - tic
+            
+    # collect results
+    collected = collectResultsDQM(results, 
+                                best_solution, 
+                                realChromaticNumber,
+                                chromatic, 
+                                QA_time,
+                                pre_processing_time, 
+                                post_processing_time)
+
+
+    print(collected)
+
+def collectResultsDQM(results, 
+                    best_solution, 
+                    realChromaticNumber,
+                    chromatic, 
+                    QA_time,
+                    pre_processing_time, 
+                    post_processing_time):
+    # PREFORMANCE
+    qpu_access_time = results.info['qpu_access_time'] # microseconds
+
+
+    collected = {
+        # Accuracy
+        'RealChromaticNumber': realChromaticNumber,
+        'CalculatedChromaticNumber': chromatic, 
+
+        # Performances
+        'QPUAccessTime': qpu_access_time / 1000, 
+        'TotalServiceTime': QA_time * 1000, 
+        'PreProcessing': pre_processing_time * 1000, 
+        'PostProcessing': post_processing_time * 1000,
+    }
+
+    return collected
+
+    
 
 def collectResults(results, best_solution, realChromaticNumber, chromatic, QA_time, pre_processing_time, post_processing_time):
 
