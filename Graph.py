@@ -48,6 +48,8 @@ def fileToGraph(filepath):
     return Graph(nNodes, np.array(edges), chromatic)
         
     
+
+# TODO: Scrap?
 def getPossibleGraphs(qubit_limit):
     def enough_qubits(n, e):
         return int(n*np.ceil(np.log2(n))+e+1) <= qubit_limit

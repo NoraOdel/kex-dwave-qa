@@ -4,54 +4,97 @@ import dwave.inspector
 from dimod import BinaryQuadraticModel
 from QUBO_helper import build_QUBO_matrix
 import numpy as np
+import time 
+import datetime as dt
+
 
 # Constants
-NUM_READS = 100                 # Hyperparameter TODO: Increase? 1000?
-CHAIN_STRENGTH = 20              # Hyperparameter TODO: to be greater than biases
+NUM_READS = 1000                 # Hyperparameter TODO: Increase? 1000?
+CHAIN_STRENGTH = 400              # Hyperparameter TODO: to be greater than biases
 
-def solveGCP(nodes: [int], edges: [[int]]):
+def solveGCP(nodes: [int], edges: [[int]], realChromaticNumber: int):
     """
     Return the approxminated chromatic number of a graph \\
     using Quantum Annealing with a binary quadratic model
     """
-    print(f'Chain Strength: {CHAIN_STRENGTH}')
     n = len(nodes)
 
-    # CREATE QUBO Matrix
+    # Pre-Processing
+    tic = time.perf_counter()
     Q = build_QUBO_matrix(n, nodes, edges)
+    toc = time.perf_counter()
+    pre_processing_time = toc - tic
+    
 
-    # Automatic Embedding in D-wave systems
-    sampler = EmbeddingComposite(DWaveSampler())
+    # Embedding + Quantum Annaeling 
+    sampler = EmbeddingComposite(DWaveSampler(solver={'topology__type': 'pegasus'}))
 
-    # sample_qubo -> Creates bqm from QUBO matrix and runs annealing process
-    # returns sampled (approximated) solutions.
-    sampleset = sampler.sample_qubo(Q,
+    tic = time.perf_counter()
+    results = sampler.sample_qubo(Q,
                                     num_reads=NUM_READS,
                                     chain_strength=CHAIN_STRENGTH,
                                     label='KEX - Graph Coloring - BQM')
+    toc = time.perf_counter()
+    QA_time = toc - tic
 
+
+    best_solution = results.first.sample
 
     # Post processing, calculate number of colors from resulting graph coloring
-    print(sampleset)
+    tic = time.perf_counter()
+    chromatic = getChromaticNumber(best_solution, n)
+    toc = time.perf_counter()
+    post_processing_time = toc - tic
+ 
+    # collect results
+    collected = collectResults(results, 
+                                best_solution, 
+                                realChromaticNumber,
+                                chromatic, 
+                                QA_time,
+                                pre_processing_time, 
+                                post_processing_time)
 
-    if len(nodes) == 8:
-        dwave.inspector.show(sampleset)
-
-    best_solution = sampleset.first.sample
-    print(f'Best Solution according to QA: {best_solution}')
-    try: 
-        print(f'Chain Breaks: {best_solution.chain_breaks}')
-    except:
-        print("Not right command")
+    # Print approximated chromatic number
+    return collected
 
 
+def collectResults(results, best_solution, realChromaticNumber, chromatic, QA_time, pre_processing_time, post_processing_time):
+
+    # PREFORMANCE
+    qpu_access_time = results.info['timing']['qpu_access_time'] # microseconds
+
+    # Other
+    chain_strength =  results.info['embedding_context']['chain_strength']
+
+
+    collected = {
+        # Accuracy
+        'RealChromaticNumber': realChromaticNumber,
+        'CalculatedChromaticNumber': chromatic, 
+
+        # Performances
+        'QPUAccessTime': qpu_access_time / 1000, 
+        'TotalServiceTime': QA_time * 1000, 
+        'PreProcessing': pre_processing_time * 1000, 
+        'PostProcessing': post_processing_time * 1000,
+
+        # Other
+        'ChainStrength': chain_strength 
+    }
+
+    return collected
+
+
+
+def getChromaticNumber(solution, n):
     grouped = np.zeros(n)
     newGroupId = 1
 
     chromatic = n
-    for key in best_solution.keys():
+    for key in solution.keys():
         (x, y) = key
-        if (best_solution[key] == 1):
+        if (solution[key] == 1):
             if grouped[y] == 0 and grouped[x] != 0:
                 # x is grouped -> Group y with x
                 chromatic -= 1
@@ -85,7 +128,4 @@ def solveGCP(nodes: [int], edges: [[int]]):
                     grouped[y] = grouped[x]
                     newGroupId -= 1
                 # if grouped together -> do nothing
-                            
-    # Print approximated chromatic number
     return chromatic
-

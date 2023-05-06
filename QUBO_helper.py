@@ -1,8 +1,8 @@
 from collections import defaultdict
 
 
-BIG_PENALTY = 15
-SMALL_PROMOTION = 1           # Hyperparameter TODO
+BIG_PENALTY = 300
+SMALL_PROMOTION = 5           # Hyperparameter TODO
 ZERO_PENALTY = 0                # Hyperparameter TODO
 
 # Initialize our matrix Q, for Q in build_QUBO_matrix()
@@ -15,8 +15,6 @@ def build_QUBO_matrix(n_nodes, nodes, edges):
     """
     Translates the graph coloring problem to a QUBO and returns the corresponding QUBO matrix 
     """
-    print(f'Big Penalty: {BIG_PENALTY}')
-    print(f'Small promotion: {SMALL_PROMOTION}')
 
     # QUBO
     Q = defaultdict(default_value)
@@ -55,6 +53,8 @@ def build_QUBO_matrix(n_nodes, nodes, edges):
                 Q[(pair1,pair2)] = ZERO_PENALTY                               # No penalty or promotion if they do not have anything todo with eachother
                 continue
             
+            pair3 = (exclusively_p1_node, exclusively_p2_node)
+            
             if edges[exclusively_p1_node][exclusively_p2_node] == 1:
                 Q[(pair1,pair2)] = BIG_PENALTY                                # Big penalty, should outshadow promotion of 1 in linear coefficients
                 # Promotes  x_node1,node2 = 0 and p_node3,node4 = 1 or 
@@ -69,5 +69,11 @@ def build_QUBO_matrix(n_nodes, nodes, edges):
                 # Promotes x_ij = 1 and p_hk = 1, everything else is equally good.
                 # reason: we cannot promote case1 and case2 if we do not check if the pairs should be able to 
                 # have an edge between themselves. this is done with linear coefficients
+            
+
+            if edges[node1][node2] == 1:
+                Q[(pair2,pair3)] = BIG_PENALTY 
+            
+            
 
     return Q
