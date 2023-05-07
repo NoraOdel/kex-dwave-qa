@@ -113,15 +113,15 @@ def collectResultsDQM(results, realChromaticNumber, chromatic, QA_time,
 
     collected = {
         # Accuracy
-        'real_chromatic_number': realChromaticNumber,
-        'calculated_chromatic_number': chromatic, 
+        "real_chromatic_number": realChromaticNumber,
+        "calculated_chromatic_number": chromatic, 
 
         # Performances
-        'QPU_access_time': qpu_access_time / 1000, 
-        'total_service_time': QA_time * 1000, 
-        'pre_processing': pre_processing_time * 1000, 
-        'post_processing': post_processing_time * 1000,
-        'from_solver' : 'hybrid_discrete_quadratic_model_version1'
+        "QPU_access_time": qpu_access_time / 1000, 
+        "total_service_time": QA_time * 1000, 
+        "pre_processing": pre_processing_time * 1000, 
+        "post_processing": post_processing_time * 1000,
+        "from_solver" : 'hybrid_discrete_quadratic_model_version1'
     }
 
     return collected
@@ -134,17 +134,17 @@ def collectResultsBQM(results, realChromaticNumber, chromatic,
 
     collected = {
         # Accuracy
-        'real_chromatic_number': realChromaticNumber,
-        'calculated_chromatic_number': chromatic, 
+        "real_chromatic_number": realChromaticNumber,
+        "calculated_chromatic_number": chromatic, 
 
         # Performances
-        'QPU_access_time': qpu_access_time / 1000, 
-        'total_service_time': QA_time * 1000, 
-        'pre_processing': pre_processing_time * 1000, 
-        'post_processing': post_processing_time * 1000,
+        "QPU_access_time": qpu_access_time / 1000, 
+        "total_service_time": QA_time * 1000, 
+        "pre_processing": pre_processing_time * 1000, 
+        "post_processing": post_processing_time * 1000,
 
         # Other
-        'from_solver' : solverChip
+        "from_solver" : solverChip
     }
 
     return collected

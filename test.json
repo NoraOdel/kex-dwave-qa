@@ -1,0 +1,24 @@
+{"results": [{ 
+    "real_chromatic_number": 2,
+    "calculated_chromatic_number": 2,
+    "QPU_access_time": 31.745,
+    "total_service_time": 1401.288446970284,
+    "pre_processing": 0.24898629635572433,
+    "post_processing": 6215.410486795008,
+    "from_solver": "hybrid_discrete_quadratic_model_version1",
+    "type": "DQM",
+    "number_of_nodes": 15,
+    "graph_density": 0.7
+}, {
+    "real_chromatic_number": 2,
+    "calculated_chromatic_number": 2,
+    "QPU_access_time": 25.137970000000003,
+    "total_service_time": 1461.018760688603,
+    "pre_processing": 0.07831119000911713,
+    "post_processing": 825.5232442170382,
+    "from_solver": "Advantage_system6.1",
+    "type": "BQM",
+    "number_of_nodes": 15,
+    "graph_density": 0.7
+}]
+}
