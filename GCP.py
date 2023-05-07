@@ -1,109 +1,102 @@
-# TODO: Which solver should we run this on?
-from dwave.system import DWaveSampler, EmbeddingComposite # = embedding is done by Dwave
-import dwave.inspector
-from dimod import BinaryQuadraticModel
+from dwave.system import DWaveSampler, EmbeddingComposite, LeapHybridDQMSampler
+from dimod import BinaryQuadraticModel, DiscreteQuadraticModel, Binary
 from QUBO_helper import build_QUBO_matrix
-import numpy as np
 import time 
-import datetime as dt
-
-
-# CQM
-from dimod import DiscreteQuadraticModel, Binary
-from dwave.system import LeapHybridDQMSampler
+import numpy as np
 
 # Constants
-NUM_READS = 1000                 # Hyperparameter TODO: Increase? 1000?
+NUM_READS = 100                   # Hyperparameter TODO: Increase? 1000?
 CHAIN_STRENGTH = 400              # Hyperparameter TODO: to be greater than biases
 
-def solveGCP(nodes: [int], edges: [[int]], realChromaticNumber: int):
+def solveGCPbqm(nodes: [int], edges: [[int]], realChromaticNumber: int):
     """
     Return the approxminated chromatic number of a graph \\
     using Quantum Annealing with a binary quadratic model
     """
+    # BUILD BQM
+    tic = time.perf_counter()                       # TIMING
+
     n = len(nodes)
-
-    # Pre-Processing
-    tic = time.perf_counter()
     Q = build_QUBO_matrix(n, nodes, edges)
-    toc = time.perf_counter()
-    pre_processing_time = toc - tic
-    
 
-    # Embedding + Quantum Annaeling 
+    toc = time.perf_counter()                       # TIMING
+    pre_processing_time = toc - tic                 # TIMING
+    tic = time.perf_counter()                       # TIMING
+
+    # RUN QUANTUM ANNEALING and FETCH SOLUTION
     sampler = EmbeddingComposite(DWaveSampler(solver={'topology__type': 'pegasus'}))
-
-    tic = time.perf_counter()
     results = sampler.sample_qubo(Q,
                                     num_reads=NUM_READS,
                                     chain_strength=CHAIN_STRENGTH,
                                     label='KEX - Graph Coloring - BQM')
-    toc = time.perf_counter()
-    QA_time = toc - tic
 
+    toc = time.perf_counter()                       # TIMING
+    QA_time = toc - tic                             # TIMING
+    tic = time.perf_counter()                       # TIMING
 
+    # POST-PROCESSING - Get chromatic number from solution
     best_solution = results.first.sample
-
-    # Post processing, calculate number of colors from resulting graph coloring
-    tic = time.perf_counter()
-    chromatic = getChromaticNumber(best_solution, n)
-    toc = time.perf_counter()
-    post_processing_time = toc - tic
+    chromatic = getChromaticNumberBQM(best_solution, n)
+    
+    toc = time.perf_counter()                       # TIMING
+    post_processing_time = toc - tic                # TIMING
  
     # collect results
-    collected = collectResults(results, 
-                                best_solution, 
+    solverChip = sampler.properties['child_properties']['chip_id']
+    collected = collectResultsBQM(results, 
                                 realChromaticNumber,
                                 chromatic, 
                                 QA_time,
                                 pre_processing_time, 
-                                post_processing_time)
+                                post_processing_time,
+                                solverChip)
 
-    # Print approximated chromatic number
     return collected
 
+def solveGCPdqm(nodes: [int], edges: [[int]], realChromaticNumber: int):
+    tic = time.perf_counter()                       # TIMING
 
-def solveGCPcqm(nodes: [int], edges: [[int]], realChromaticNumber: int):
-    tic = time.perf_counter()
+    # BUILD DISCRETE QUADRATIC MODEL
     num_colors = len(nodes)
     colors = range(num_colors)
 
     dqm = DiscreteQuadraticModel()
-
     for node in nodes:
         dqm.add_variable(num_colors, label=node)
         dqm.set_linear(node, colors)
 
-
-    # Build dqm variables
     for i1 in range(len(nodes)):
         node1 = nodes[i1]
         for i2 in range(i1+1,len(nodes)):
             node2 = nodes[i2]
-            if edges[node1][node2] == 1: # Penalty
+            if edges[node1][node2] == 1: 
                 dqm.set_quadratic(node1, node2, {(color, color): 100 for color in colors})
-    toc = time.perf_counter()
-    pre_processing_time = toc - tic
+    
+    toc = time.perf_counter()                       # TIMING
+    pre_processing_time = toc - tic                 # TIMING
+    tic = time.perf_counter()                       # TIMING
 
-    tic = time.perf_counter()
-    results = LeapHybridDQMSampler().sample_dqm(dqm, label='DQM - Graph Coloring')
-    toc = time.perf_counter()
-    QA_time = toc - tic
+    # RUN QUANTUM ANNEALING and FETCH SOLUTION
+    dqm_sampler = LeapHybridDQMSampler()
+    results = dqm_sampler.sample_dqm(dqm, label='DQM - Graph Coloring')
 
+    toc = time.perf_counter()                       # TIMING
+    QA_time = toc - tic                             # TIMING
+    tic = time.perf_counter()                       # TIMING
+
+
+    # POST-PROCESSING - Get chromatic number from solution
     best_solution = results.first.sample
-    # Get chromatic number - Post processing
-    tic = time.perf_counter()
     usedColors = dict.fromkeys(colors, 0)
     for color in best_solution.values():
         usedColors[color] = 1
-    
     chromatic = sum(usedColors.values())
-    toc = time.perf_counter()
-    post_processing_time = toc - tic
+
+    toc = time.perf_counter()                       # TIMING
+    post_processing_time = toc - tic                # TIMING
             
-    # collect results
-    collected = collectResultsDQM(results, 
-                                best_solution, 
+    # COLLECT RESULTS
+    collected = collectResultsDQM(results,
                                 realChromaticNumber,
                                 chromatic, 
                                 QA_time,
@@ -111,64 +104,52 @@ def solveGCPcqm(nodes: [int], edges: [[int]], realChromaticNumber: int):
                                 post_processing_time)
 
 
-    print(collected)
+    return collected
 
-def collectResultsDQM(results, 
-                    best_solution, 
-                    realChromaticNumber,
-                    chromatic, 
-                    QA_time,
-                    pre_processing_time, 
-                    post_processing_time):
-    # PREFORMANCE
+def collectResultsDQM(results, realChromaticNumber, chromatic, QA_time, 
+                    pre_processing_time, post_processing_time):
+    # PERFORMANCE
     qpu_access_time = results.info['qpu_access_time'] # microseconds
-
 
     collected = {
         # Accuracy
-        'RealChromaticNumber': realChromaticNumber,
-        'CalculatedChromaticNumber': chromatic, 
+        'real_chromatic_number': realChromaticNumber,
+        'calculated_chromatic_number': chromatic, 
 
         # Performances
-        'QPUAccessTime': qpu_access_time / 1000, 
-        'TotalServiceTime': QA_time * 1000, 
-        'PreProcessing': pre_processing_time * 1000, 
-        'PostProcessing': post_processing_time * 1000,
+        'QPU_access_time': qpu_access_time / 1000, 
+        'total_service_time': QA_time * 1000, 
+        'pre_processing': pre_processing_time * 1000, 
+        'post_processing': post_processing_time * 1000,
+        'from_solver' : 'hybrid_discrete_quadratic_model_version1'
     }
 
     return collected
 
-    
-
-def collectResults(results, best_solution, realChromaticNumber, chromatic, QA_time, pre_processing_time, post_processing_time):
+def collectResultsBQM(results, realChromaticNumber, chromatic, 
+                    QA_time, pre_processing_time, post_processing_time, solverChip):
 
     # PREFORMANCE
     qpu_access_time = results.info['timing']['qpu_access_time'] # microseconds
 
-    # Other
-    chain_strength =  results.info['embedding_context']['chain_strength']
-
-
     collected = {
         # Accuracy
-        'RealChromaticNumber': realChromaticNumber,
-        'CalculatedChromaticNumber': chromatic, 
+        'real_chromatic_number': realChromaticNumber,
+        'calculated_chromatic_number': chromatic, 
 
         # Performances
-        'QPUAccessTime': qpu_access_time / 1000, 
-        'TotalServiceTime': QA_time * 1000, 
-        'PreProcessing': pre_processing_time * 1000, 
-        'PostProcessing': post_processing_time * 1000,
+        'QPU_access_time': qpu_access_time / 1000, 
+        'total_service_time': QA_time * 1000, 
+        'pre_processing': pre_processing_time * 1000, 
+        'post_processing': post_processing_time * 1000,
 
         # Other
-        'ChainStrength': chain_strength 
+        'from_solver' : solverChip
     }
 
     return collected
 
-
-
-def getChromaticNumber(solution, n):
+def getChromaticNumberBQM(solution, n):
     grouped = np.zeros(n)
     newGroupId = 1
 
